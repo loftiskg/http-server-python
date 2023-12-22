@@ -14,20 +14,25 @@ def main():
     client_socket, address = server_socket.accept() # wait for client
     print(f"Received connection from: {address[0]}:{address[1]}")
 
-    while True:
-        request_data = client_socket.recv(BUFFER_SIZE).decode() # receive client's request
+    request_data = client_socket.recv(BUFFER_SIZE).decode() # receive client's request
 
-        start_line = request_data.splitlines()[0]
-        method, path, protocol = start_line.split()
+    start_line = request_data.splitlines()[0]
+    method, path, protocol = start_line.split()
 
-        if path == "/":
-            response = "HTTP/1.1 200 OK\r\n\r\n"
-        else: 
-            response = "HTTP/1.1 404 Not Found\r\n\r\n"
+    if path.startswith("/echo/"):
+        string = path.split("/")[-1]
+    else: 
+        response = "HTTP/1.1 404 Not Found\r\n\r\n"
 
-        client_socket.sendall(response.encode()) # send response to client
-        client_socket.close()
-        break
+
+    response =  "HTTP/1.1 200 OK\r\n" +\
+                "Content-Type: text/plain\r\n" +\
+                "Cotent-Length: {}\r\n".format(len(string)) +\
+                "\r\n" +\
+                "{}\r\n".format(string)
+
+    client_socket.sendall(response.encode()) # send response to client
+
 
 
 
