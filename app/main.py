@@ -17,7 +17,14 @@ def main():
     while True:
         request_data = client_socket.recv(BUFFER_SIZE).decode() # receive client's request
 
-        response = "HTTP/1.1 200 OK\r\n\r\n"
+        start_line = request_data.splitlines()[0]
+        method, path, protocol = start_line.split()
+
+        if path == "/":
+            response = "HTTP/1.1 200 OK\r\n\r\n"
+        else: 
+            response = "HTTP/1.1 404 Not Found\r\n\r\n"
+
         client_socket.sendall(response.encode()) # send response to client
         client_socket.close()
         break
