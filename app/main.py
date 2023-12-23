@@ -37,7 +37,7 @@ def root_handler(path):
     return "HTTP/1.1 200 OK\r\n\r\n"
 
 def echo_handler(path):
-    body = re.match(r"/echo/(\w+)$", path).group(1)
+    body = re.match(r"/echo/(.*)", path).group(1)
 
     response = "HTTP/1.1 200 OK\r\n" +\
                "Content-Type: text/plain\r\n" +\
