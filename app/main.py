@@ -53,16 +53,16 @@ def parse_http_response(request_data: str) -> Request:
 
 def encode_http_response(response: Response):
     protocol, status_code, status_text = response.protocol, response.status_code, response.status_text
-    start_line = f"{protocol} {status_code} {status_text}"
+    start_line = f"{protocol} {status_code} {status_text}" + CLRF
     response_encoded = [start_line]
 
     if response.headers:
-        response_encoded += [f"{key}: {value}" for (key, value) in response.headers.items()]
+        response_encoded += [f"{key}: {value}" + CLRF for (key, value) in response.headers.items()]
     if response.body:
-        response_encoded.append('')
-        response_encoded.append(response.body)     
+        response_encoded.append(CLRF)
+        response_encoded.append(response.body+CLRF)     
 
-    r = (CLRF.join(response_encoded) + CLRF).encode()
+    r = (''.join(response_encoded) + CLRF).encode()
     print(r)
     return r
 
