@@ -62,7 +62,9 @@ def encode_http_response(response: Response):
         response_encoded.append('')
         response_encoded.append(response.body)     
 
-    return (CLRF.join(response_encoded) + CLRF).encode()
+    r = (CLRF.join(response_encoded) + CLRF).encode()
+    print(r)
+    return r
 
 
 def main():
