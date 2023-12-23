@@ -1,4 +1,6 @@
 # Uncomment this to pass the first stage
+import logging
+import re
 import socket
 
 BUFFER_SIZE = 1024
@@ -19,20 +21,34 @@ def main():
     start_line = request_data.splitlines()[0]
     method, path, protocol = start_line.split()
 
-    if path.startswith("/echo/"):
-        string = path.split("/")[-1]
-    else: 
-        response = "HTTP/1.1 404 Not Found\r\n\r\n"
+    if re.match(r"/$", path):
+        resp = root_handler(path)
+    elif re.match(r"/echo/(\w+)$", path):
+        resp = echo_handler(path)
+    else:
+        resp = not_found_handler(path)
 
 
-    response =  "HTTP/1.1 200 OK\r\n" +\
-                "Content-Type: text/plain\r\n" +\
-                "Cotent-Length: {}\r\n".format(len(string)) +\
-                "\r\n" +\
-                "{}\r\n".format(string)
 
-    client_socket.sendall(response.encode()) # send response to client
+    client_socket.sendall(resp.encode()) # send response to client
 
+
+def root_handler(path):
+    return "HTTP/1.1 200 OK\r\n\r\n"
+
+def echo_handler(path):
+    body = re.match(r"/echo/(\w+)$", path).group(1)
+
+    response = "HTTP/1.1 200 OK\r\n" +\
+               "Content-Type: text/plain\r\n" +\
+               "Cotent-Length: {}\r\n".format(len(body)) +\
+               "\r\n" +\
+               "{}\r\n".format(body)
+
+    return response
+
+def not_found_handler(path):
+    return "HTTP/1.1 404 Not Found\r\n\r\n"
 
 
 
