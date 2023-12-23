@@ -41,7 +41,7 @@ def echo_handler(path):
 
     response = "HTTP/1.1 200 OK\r\n" +\
                "Content-Type: text/plain\r\n" +\
-               "Cotent-Length: {}\r\n".format(len(body)) +\
+               "Content-Length: {}\r\n".format(len(body)) +\
                "\r\n" +\
                "{}\r\n".format(body)
 
