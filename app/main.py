@@ -11,8 +11,6 @@ BUFFER_SIZE = 1024
 DIRECTORY: Path | None = None
 CLRF = '\r\n'
 
-NOT_FOUND = "HTTP/1.1 404 Not Found\r\n\r\n"
-
 @dataclass
 class Request:
     method: str
@@ -87,14 +85,18 @@ def handler(connection: socket.socket, address: str):
     request_data = connection.recv(BUFFER_SIZE).decode()
     request = parse_http_response(request_data)
 
-    if re.match(r"/$", request.path):
+
+    if re.match(r"/$", request.path) and request.method == 'GET':
         resp = root_handler(request)
-    elif re.match(r"/echo/(.*)", request.path):
+    elif re.match(r"/echo/(.*)", request.path) and request.method == 'GET':
         resp = echo_handler(request)
-    elif re.match(r"/user-agent", request.path):
+    elif re.match(r"/user-agent", request.path) and request.method == 'GET':
         resp = user_agent_handler(request)
     elif re.match(r"/files.*", request.path):
-        resp = files_handler(request)
+        if request.method == 'GET':
+            resp = get_files_handler(request)
+        if request.method == 'POST':
+            resp = post_files_handler(request)
     else:
         resp = not_found_handler(request)
 
@@ -118,10 +120,10 @@ def echo_handler(request: Request):
 
     return response
 
-def not_found_handler(path: Request):
-    return NOT_FOUND
+def not_found_handler(path: Request) -> Response:
+    return response_404_not_found()
 
-def user_agent_handler(request: Request):
+def user_agent_handler(request: Request) -> Response:
     user_agent = request.headers["User-Agent"]
 
     response = response_200_ok()
@@ -131,10 +133,10 @@ def user_agent_handler(request: Request):
 
     return response
 
-def files_handler(request: Request):
+def get_files_handler(request: Request) -> Response:
     filename = re.match(r"/files/(.*)", request.path).group(1)
     if DIRECTORY is None:
-        return NOT_FOUND
+        return response_404_not_found()
     else:
         fpath = DIRECTORY/filename
         if fpath.is_file():
@@ -148,7 +150,15 @@ def files_handler(request: Request):
             print(f"Requested file not found: {fpath}")
             return response_404_not_found()
   
-            
+def post_files_handler(request: Request) -> Response:
+    if DIRECTORY is None or not DIRECTORY.is_dir():
+        return response_404_not_found()
+    else:
+        filename = re.match(r"/files/(.*)", request.path).group(1)
+        fpath = DIRECTORY/filename
+        with open(fpath, mode='w+') as f:
+            f.write(request.body)
+        return response_201_created()
 
 
 if __name__ == "__main__":
