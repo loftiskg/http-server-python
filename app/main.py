@@ -1,4 +1,6 @@
+import argparse
 from dataclasses import dataclass
+from pathlib import Path
 import re
 import socket
 import threading
@@ -6,6 +8,9 @@ import threading
 from typing import Dict
 
 BUFFER_SIZE = 1024
+DIRECTORY: Path | None = None
+
+NOT_FOUND = "HTTP/1.1 404 Not Found\r\n\r\n"
 
 @dataclass
 class Request:
@@ -57,6 +62,8 @@ def handler(connection, address):
         resp = echo_handler(request)
     elif re.match(r"/user-agent", request.path):
         resp = user_agent_handler(request)
+    elif re.match(r"/files.*", request.path):
+        resp = files_handler(request)
     else:
         resp = not_found_handler(request)
 
@@ -82,7 +89,7 @@ def echo_handler(request: Request):
     return response
 
 def not_found_handler(path: Request):
-    return "HTTP/1.1 404 Not Found\r\n\r\n"
+    return NOT_FOUND
 
 def user_agent_handler(request: Request):
     user_agent = request.headers["User-Agent"]
@@ -95,5 +102,38 @@ def user_agent_handler(request: Request):
 
     return response
 
+def files_handler(request: Request):
+    filename = re.match(r"/files/(.*)", request.path).group(1)
+    if DIRECTORY is None:
+        return NOT_FOUND
+    else:
+        fpath = DIRECTORY/filename
+        if fpath.is_file():
+            resp_body = None
+            with fpath.open() as f:
+                resp_body = f.read()
+            return "HTTP/1.1 200 OK\r\n" +\
+                "Content-Type: application/octet-stream\r\n" +\
+                "Content-Length: {}\r\n".format(len(resp_body)) +\
+                "\r\n" +\
+                "{}\r\n".format(resp_body)
+        else:
+            print(f"Requested file not found: {fpath}")
+            return NOT_FOUND
+  
+            
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--directory')
+    args = parser.parse_args()
+
+    
+    if args.directory:
+        DIRECTORY = Path(args.directory)
+        print(f'Directory set to {DIRECTORY}')
+    else:
+        print('Warning: Directory not set')
+    
     main()
