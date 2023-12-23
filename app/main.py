@@ -23,7 +23,7 @@ def main():
 
     if re.match(r"/$", path):
         resp = root_handler(path)
-    elif re.match(r"/echo/(\w+)$", path):
+    elif re.match(r"/echo/.*", path):
         resp = echo_handler(path)
     else:
         resp = not_found_handler(path)
