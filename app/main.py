@@ -1,9 +1,35 @@
 # Uncomment this to pass the first stage
+from dataclasses import dataclass
 import logging
 import re
 import socket
+from typing import Dict
 
 BUFFER_SIZE = 1024
+
+@dataclass
+class Request:
+    method: str
+    path: str
+    protocol: str
+    headers: Dict[str, str]
+    body: str
+
+def parse_http_response(request_data: str) -> Request:
+    lines = request_data.splitlines()
+    start_line = lines[0]
+    method, path, protocol = start_line.split()
+
+    headers = {}
+    for line in lines[1:]:
+        if line == "":
+            break
+        key, value = line.split(": ")
+        headers[key] = value
+
+    body = "\n".join(lines[lines.index("")+1:])
+
+    return Request(method, path, protocol, headers, body)
 
 def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -18,26 +44,27 @@ def main():
 
     request_data = client_socket.recv(BUFFER_SIZE).decode() # receive client's request
 
-    start_line = request_data.splitlines()[0]
-    method, path, protocol = start_line.split()
+    request = parse_http_response(request_data)
 
-    if re.match(r"/$", path):
-        resp = root_handler(path)
-    elif re.match(r"/echo/(.*)", path):
-        resp = echo_handler(path)
+    if re.match(r"/$", request.path):
+        resp = root_handler(request)
+    elif re.match(r"/echo/(.*)", request.path):
+        resp = echo_handler(request)
+    elif re.match(r"/user-agent", request.path):
+        resp = user_agent_handler(request)
     else:
-        resp = not_found_handler(path)
+        resp = not_found_handler(request)
 
 
 
     client_socket.sendall(resp.encode()) # send response to client
 
 
-def root_handler(path):
+def root_handler(path: Request):
     return "HTTP/1.1 200 OK\r\n\r\n"
 
-def echo_handler(path):
-    body = re.match(r"/echo/(.*)", path).group(1)
+def echo_handler(request: Request):
+    body = re.match(r"/echo/(.*)", request.path).group(1)
 
     response = "HTTP/1.1 200 OK\r\n" +\
                "Content-Type: text/plain\r\n" +\
@@ -47,10 +74,19 @@ def echo_handler(path):
 
     return response
 
-def not_found_handler(path):
+def not_found_handler(path: Request):
     return "HTTP/1.1 404 Not Found\r\n\r\n"
 
+def user_agent_handler(request: Request):
+    user_agent = request.headers["User-Agent"]
 
+    response = "HTTP/1.1 200 OK\r\n" +\
+               "Content-Type: text/plain\r\n" +\
+               "Content-Length: {}\r\n".format(len(user_agent)) +\
+               "\r\n" +\
+               "{}\r\n".format(user_agent)
+
+    return response
 
 if __name__ == "__main__":
     main()
